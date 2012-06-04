@@ -1,0 +1,119 @@
+#!/bin/bash
+## ________________________________________________________________________________________
+#   
+##
+## Sets up Secure shell keys for the User
+##
+# Filename			: Sushi
+# Author			: Mike Atkinson 
+# Date created			: 20 February 2002
+#
+#
+#	This Software is FREE and is 
+#	subject to the GNU General Public License which can be found at ...
+#
+#	http://www.gnu.org/licenses/gpl.txt
+#
+#	Enjoy
+#
+# 
+#
+##
+function Trapper
+{
+	trap ''  1 2 3 4 5 6 7 8 15
+	echo -e "\n\nInterupt received ... tidying up\n"
+	if [[ -d ${ArchiveSshDir} ]];then	
+		echo -n "
+Recovering old ssh keys ... "
+		if [[ -d ${HOME}/.ssh ]];then	
+			rm -rf ${HOME}/.ssh 2>/dev/null
+		fi
+		mv -f ${ArchiveSshDir} ${HOME}/.ssh 2>/dev/null
+		if [[ $? -eq 0 ]];then
+			echo "done"
+		else
+			echo "failed"
+		fi
+	fi
+	echo -e "\n${Script} exiting\n"
+	exit 1
+}
+## _____________
+##
+## Entry Point
+## _____________
+##
+Script=${0##*/}
+##
+## Check home directory permissions
+## 
+cd ${HOME} 2>/dev/null
+##
+if [[ $? -ne 0 ]];then
+	echo -e "Cannot change directory to User \"${LOGNAME}'s\" home directory : ${HOME}
+There may be an automount problem, the directory may not exist or you may not have access permissions\n"
+	exit 1
+fi
+#
+#
+#
+trap 'Trapper'  1 2 3 4 5 6 7 8 15 
+
+
+##
+## search for ssh-keygen in current PATH variable
+##
+SshKeygen=""
+for Dir in $(echo ${PATH}|sed -e 's/:/ /g')
+	do
+	if [[ -x ${Dir}/ssh-keygen ]];then
+		SshKeygen=${Dir}/ssh-keygen
+		break
+	fi
+	done
+if [[ -z ${SshKeygen} ]];then
+	echo -e "Cannot find \"ssh-keygen\" binary in current PATH value
+Please ensure the Secure Shell suite is installed and the PATH assignment
+includes a directory to the Secure Shell binaries\n\n"
+	Trapper
+fi 
+ArchiveSshDir="${HOME}/.ssh_$(date +%Y%m%d)_$$"
+##
+## Preserve any existing .ssh config
+##
+if [[ -d ${HOME}/.ssh  ]];then
+	mv ${HOME}/.ssh ${ArchiveSshDir}
+	if [[ $? -ne 0 ]];then
+		echo -e "Failed to move directory \"${HOME}/.ssh\" to \"${ArchiveSshDir}\"}
+Please ensure you have ownership of the directory \"${HOME}/.ssh\"\n\n"
+		Trapper 
+	fi
+fi
+mkdir -p ${HOME}/.ssh
+if [[ $? -ne 0 ]];then
+	echo -e "Failed to create directory \"${HOME}/.ssh\" Please insure you have
+write permission in your home directory\n\n"
+	Trapper
+fi 
+chmod 700 ${HOME}/.ssh
+##
+## Just do RSA keys
+##
+# ${SshKeygen} -t dsa -N "" -f ${HOME}/.ssh/id_dsa 
+# cp ${HOME}/.ssh/id_dsa.pub ${HOME}/.ssh/authorized_keys2
+${SshKeygen} -t rsa -N "" -f ${HOME}/.ssh/id_rsa 
+cp ${HOME}/.ssh/id_rsa.pub ${HOME}/.ssh/authorized_keys
+##
+#${SshKeygen} -t rsa1 -N "" -f ${HOME}/.ssh/id_rsa 
+#cp ${HOME}/.ssh/identity.pub  ${HOME}/.ssh/authorized_keys
+##
+if [[ -f "${ArchiveSshDir}/authorized_keys" ]];then
+	cat "${ArchiveSshDir}/authorized_keys" >> ${HOME}/.ssh/authorized_keys 
+fi
+##
+## Enable X forwarding down an SSH tunnel
+##
+echo "ForwardX11 yes" >${HOME}/.ssh/config
+##
+## Mike.Atkinson@VickyPark.com

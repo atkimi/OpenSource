@@ -1,0 +1,38 @@
+#!/bin/bash
+#
+# Obtain a list of files in the curreny directory
+# Seach each file for references to other files
+# ( Initially written for an Apache httpd doc root )
+#
+let Count=0
+while read file
+	do
+	[[ ! -f "$file" ]] && continue
+	FileList[${Count}]="$file"
+	let Count+=1
+	done <<!
+$(ls -1)
+!
+
+let Count=0
+while [[ ${Count} -lt ${#FileList[*]} ]]
+	do
+	let Loop=0
+	let Found=0
+	while [[ ${Loop} -lt ${#FileList[*]} ]]
+		do
+		if [[ $Count -eq $Loop ]];then
+			let Loop+=1
+			continue
+		fi	
+		if [[ $(cat "${FileList[${Loop}]}" |grep -c "${FileList[${Count}]}") -gt 0 ]];then
+#			echo "File ${FileList[${Count}]} referenced in ${FileList[${Loop}]}"		
+			let Found=1
+		fi
+		let Loop+=1
+		done
+	if [[ ${Found} -eq 0 ]];then
+		echo "File ${FileList[${Count}]} is not referenced"
+	fi
+	let Count+=1
+	done

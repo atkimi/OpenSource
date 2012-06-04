@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+#
+# _________________________________________________
+#
+# Author                  : Mike Atkinson
+# ChangeSet               : $Revision: 210 $
+# Last Edited by          : $Author: atkimi $
+# Date last checked in    : $Date: 2011-01-16 20:56:19 +0000 (Sun, 16 Jan 2011) $
+# SVN Repository Filename : $HeadURL: file:///Data/Subversion/MyRepository/Tools/trunk/sh/ManageSecure $
+#
+# Description: Mounts encrypted file systems
+#
+# _________________________________________________
+#
+#
+#       This Software is FREE and is 
+#       subject to the GNU General Public License which can be found at ...
+#
+#       http://www.gnu.org/licenses/gpl.txt
+#
+#       Enjoy
+#
+# _________________________________________________
+#
+#
+if [[ $(id -u) -ne 0 ]];then
+	echo -e "
+
+You may only invoke ${0##*/} as root 
+
+
+"
+	exit 1
+fi
+SecureMountPointOffset=""
+MapperDevice="/dev/mapper/secure"
+RealEncryptedDevices=$(for i in $(fdisk -l 2>/dev/null|grep "^/dev"|awk '{print $1}'); do cryptsetup isLuks $i && echo $i; done)
+echo -e "The following devices are encrypted:\n${RealEncryptedDevices}"
+let Count=1;
+for RealEncryptedDevice in ${RealEncryptedDevices}
+	do
+	ActualMapperDevice=${MapperDevice}${Count}
+	if [[ ! -L ${ActualMapperDevice} ]];then
+		echo "Creating Mapping for Device ${RealEncryptedDevice} to ${ActualMapperDevice}"
+		cryptsetup luksOpen ${RealEncryptedDevice} ${ActualMapperDevice##*/}
+	fi
+	ActualMountPoint=$(cat /etc/mtab|grep  ${ActualMapperDevice} 2>/dev/null|cut -f2 -d" ")
+	if [[ ${ActualMountPoint} = "" ]];then
+		echo -n "${ActualMapperDevice} is NOT mounted. Do you want to mount it ? ... [y|n] "
+		read Reply
+		if [[ ${Reply} = "y" ]];then
+			mkdir -p ${SecureMountPointOffset}/${ActualMapperDevice##*/}
+			mount ${ActualMapperDevice} ${SecureMountPointOffset}/${ActualMapperDevice##*/} 2>/dev/null
+			if [[ $? -ne 0 ]];then
+				echo "Device ${ActualMapperDevice} failed to mount - check there is a valid file system on the device"
+			fi
+		fi
+	else
+		echo -n "${ActualMapperDevice} IS mounted. Do you want to unmmount it ? ... [y|n] "
+		read Reply
+		if [[ ${Reply} = "y" ]];then
+			umount ${ActualMapperDevice}
+		fi 
+	fi
+	let Count+=1	
+	done
+exit 0

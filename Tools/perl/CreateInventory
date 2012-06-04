@@ -1,0 +1,153 @@
+#!/usr/bin/env perl
+#
+# Author                  : Mike Atkinson
+# ChangeSet               : $Revision: 185 $
+# Last Edited by          : $Author: atkimi $
+# Date last checked in    : $Date: 2011-01-04 23:32:46 +0000 (Tue, 04 Jan 2011) $
+# SVN Repository Filename : $HeadURL: file:///Data/Subversion/MyRepository/Tools/trunk/perl/CreateInventory $
+#
+# Trawl through current or defined (1st arg) directory and add file details to table Photographs in database Inventory 
+# (This script is to track photos and look for duplicates)
+#
+use Cwd;
+use DBI;
+use DBD::mysql;
+use strict;
+##
+## Extract last check in date
+##
+my $LastAmended='$Date: 2011-01-04 23:32:46 +0000 (Tue, 04 Jan 2011) $';
+$LastAmended =~s/\$Date. (.*) \$/$1/;
+my $Version ='$Revision: 185 $';
+$Version =~s/^.*://;
+chop $Version;
+my $LastEditedBy ='$Author: atkimi $';
+$LastEditedBy =~s/^.*://;
+chop $LastEditedBy;
+##
+if ( -d $ARGV[0])
+{
+	chdir($ARGV[0]) or die "Cannot change directory to $ARGV[0]\n";
+}
+my $DbHandle = DBI->connect("dbi:mysql:host=localhost;", "username","password" )
+                || die("Cannot connect to mysql database on Host localhost $DBI::errstr");
+RunSqlCommand("use Inventory");
+#
+my $StartupDirectory=cwd;
+my $NoTime=0;
+#
+print ("Starting in $StartupDirectory\n");
+TrawlDirectory($StartupDirectory,$StartupDirectory);
+#
+#
+close(DbHandle);
+#
+printf("%d files had no time stamp\n",$NoTime);
+
+#
+exit(0);
+#
+sub TrawlDirectory
+{
+	my $CurrentDirectory = shift;
+	my $FullPathName = shift;
+	my $FullFileName;
+	my $SystemCommand;
+	my $SystemOutput;
+	my $OutputBuffer;
+	my $ReturnStatus;
+	my $SqlDateTime;
+	my @ResponseArray;
+	opendir (DirectoryHandle, $CurrentDirectory) or die "Unable to open $CurrentDirectory: $!";
+	my @DirectoryEntries = grep { !/^\.{1,2}$/ } readdir (DirectoryHandle);
+	closedir (DirectoryHandle);
+	for (@DirectoryEntries)
+	{
+		if (-d $_)
+		{
+			my $NewPath = sprintf("%s/%s",$FullPathName,$_);
+      			TrawlDirectory ($_,$NewPath);
+       		}
+		else
+		{ 
+			$OutputBuffer="";
+			$FullFileName=sprintf("%s/%s",$FullPathName,$_);
+			$SystemCommand=sprintf("exiftool -CreateDate -d \"%%Y-\%m-%%d %%H:%%M\" \"%s\" |",$FullFileName);
+			open SystemHandle, $SystemCommand or die("Cannot run command $SystemCommand\n");
+			while (defined ( $SystemOutput = <SystemHandle>))
+			{
+				$OutputBuffer .= sprintf(" %s",$SystemOutput);
+			}
+			$ReturnStatus=close(SystemHandle);
+			if($ReturnStatus != 0 )
+			{
+				@ResponseArray=split(/:/,$OutputBuffer);
+				shift(@ResponseArray);
+				$SqlDateTime=join(':',@ResponseArray);	
+				$SqlDateTime=~s/^\s+//g;	
+				if ( length($ResponseArray[1]))
+				{	
+					AddDatabaseEntry($FullFileName,$SqlDateTime);
+				}
+				else
+				{
+					$NoTime++;
+				}
+       			}
+		}
+	}
+}
+##
+###
+sub AddDatabaseEntry
+{
+	my $FileName = shift;
+	my $DateTime = shift;
+	chomp($DateTime);
+	my $OutputBuffer="";
+	my $SystemOutput;
+	my $SystemCommand=sprintf("sha1sum \"%s\" |",$FileName);
+	open Sha1SystemHandle, $SystemCommand or die("Cannot run command $SystemCommand\n");
+	while (defined ( $SystemOutput = <Sha1SystemHandle>))
+	{
+		$OutputBuffer .= sprintf(" %s",$SystemOutput);
+	}
+	close(Sha1SystemHandle);
+	chomp($OutputBuffer);
+#	$OutputBuffer =~s/\w{1,50}/,/g;
+	$OutputBuffer =~s/ +/,/g;
+	my @SqlArray=split(',',$OutputBuffer);
+	my $SqlCommand=sprintf("Insert into `Photographs` (`Sha1Sum`,`CreateDate`,`FullFileName` ) values ('%s','%s','%s')",
+		$SqlArray[1],$DateTime,$FileName);
+#		$SqlArray[1],$DateTime,$SqlArray[2]);
+	RunSqlCommand($SqlCommand);
+	printf("%s\n",$SqlCommand);
+}
+#
+################################
+# Returns an array of row data #
+################################
+sub RunSqlCommand
+{
+        my $SqlCommand = shift;
+        my @Row ;
+        my @RowArray = ();
+        my $sth;
+        my $Member;
+	my $RecordSep="*";
+        $sth = $DbHandle->prepare( ${SqlCommand} )
+                || die("Cannot prepare SQL : Statement is: [$SqlCommand] $DBI::errstr");
+        $sth->execute();
+#                || die("Cannot execute SQL  : Statement is: [$SqlCommand] Handle is $DbHandle $DBI::errstr");
+#        while(@Row=$sth->fetchrow_array)
+#        {
+#                foreach $Member (@Row)
+#                {
+#                        $Member =~ s/\s+$//;
+#                }
+#                push @RowArray , join("${RecordSep}",@{Row});
+#        }
+#        return(@RowArray);
+	return;
+}
+

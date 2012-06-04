@@ -1,0 +1,79 @@
+#!/bin/bash
+## ________________________________________________________________________________________
+#   
+##
+## Lowercase any files in the current workinf directory 
+##
+# Filename			: LowerCase
+# Author			: Mike Atkinson 
+# Date created			: 21 October 2010
+#
+#
+#	This Software is FREE and is 
+#	subject to the GNU General Public License which can be found at ...
+#
+#	http://www.gnu.org/licenses/gpl.txt
+#
+#	Enjoy
+#
+#	Modification History
+#	____________________
+#
+# 
+#
+##
+function Trapper
+{
+	trap ''  1 2 3 4 5 6 7 8 15
+	echo -e "\n\nInterupt received ... tidying up\n"
+	if [[ -d ${ArchiveSshDir} ]];then	
+		echo -n "
+Recovering old ssh keys ... "
+		if [[ -d ${HOME}/.ssh ]];then	
+			rm -rf ${HOME}/.ssh 2>/dev/null
+		fi
+		mv -f ${ArchiveSshDir} ${HOME}/.ssh 2>/dev/null
+		if [[ $? -eq 0 ]];then
+			echo "done"
+		else
+			echo "failed"
+		fi
+	fi
+	echo -e "\n${Script} exiting\n"
+	exit 1
+}
+## _____________
+##
+## Entry Point
+## _____________
+##
+ScriptName=${0##*/}
+##
+## Check currend directory permissions
+## 
+touch ${ScriptName}.$$ 2>/dev/null
+if [[ $? -ne 0 ]];then
+	echo "You (${LOGNAME}) do not have permission to write in the current directory $(/bin/pwd)"
+	exit 1
+fi
+rm -f ${ScriptName}.$$ 2>/dev/null
+##
+echo "This script will fold all uppercase characters to lowercase for the files in this directory"
+echo -n "Is this what you want to do ? [y|n] ... "
+read Reply
+if [ ${Reply} != "y" ];then
+	echo "exiting"
+	exit 2
+fi
+let Count=0
+while read File
+	do
+	declare -l lcFile=${File}
+	[ ${File} = ${lcFile} ] && continue
+	mv ${File} ${lcFile}
+	[ $? -eq 0 ]  && let Count+=1
+	done <<!
+$(find . -maxdepth 1 -type f)
+!
+echo "${Count} files were folded"
+exit 0
