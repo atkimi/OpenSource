@@ -14,7 +14,8 @@ def squareroot(value):
     print "Iterating to obtain squareroot of  " + str(value)
     loop=0
     a=value/2
-    while loop < 10:
+#    while loop < 10:
+    while 1: 
         print "Trying Value " + str(a)
         b=float(value/a)
         a=float((b+a)/2)
@@ -58,16 +59,37 @@ embedded in triple quotes "`'@!£%^&*()_~#|
     print triplecodedstring
     fib(100)
     squareroot(100000)
-    prime(1000)
+    prime(100)
 
 ## _____________________
 ##
 ## E N T R Y   P O I N T
 ## _____________________
 ##
-import imp, sys, os, re, time, math
+import imp, sys, os, re, time, math, optparse
+from optparse import OptionParser
+myparser = OptionParser()
+#myparser.add_option("-f", "--file", action='store', type='string', destination='chosenfile')
+myparser.add_option("-f", "--file", help="Thingy filename")
+myparser.add_option("-u",help="User Name")
+myparser.add_option("-p",help="Password")
+myparser.add_option("-x",help="extra terrestrial species")
+myparser.add_option("-d", action='store_true',help="Debug")
+#myparser.print_help()
+#myparser.args()print()
+(options, args) = myparser.parse_args()
+#print options + args
+print options
+#print args
+#exit(0)
 identifier = "python-%s-%s" % (sys.version[:3], sys.platform)
 timestamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime(time.time()))
-print "\nTime stamp is " + timestamp + "\nPython Version is " + identifier + "\n\n"
+scriptname=sys.argv[0]
+clibits=sys.argv[0].split('/')
+print "Command line bits are %d" % len(clibits)
+for value in clibits:
+  print "Traversing split " + value
+print "Printing %d of list: %s" % ( len(clibits), clibits[len(clibits)-1])
+print "\n%s: Time stamp is %s\nPython Version is %s\n" % ( scriptname,timestamp,identifier )
 if __name__ == "__main__":
     main()
