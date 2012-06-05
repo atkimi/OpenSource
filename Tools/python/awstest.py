@@ -49,7 +49,24 @@ def readfiledata(fname):
 # ____
 #
 def main():
-  print """Orf we go"""
+  print "u is " + username
+  from boto.ec2.connection import EC2Connection
+  try:
+    ec2handle = EC2Connection(username,password)
+  except ValidationError:
+    print "\nYour AWS Account and Security Key was rejected\n"
+    exit(1)
+  ec2handle.region="RegionInfo:eu-west-1"
+#  print ec2handle.region 
+  print ec2handle 
+  try:
+    instanceList=ec2handle.get_all_instances()
+  except:
+    print "\nUnable to get Instances for your account\n"
+    exit(1)
+  print instanceList
+  
+  print """So far so good"""
 ## _____________________
 ##
 ## E N T R Y   P O I N T
@@ -66,13 +83,11 @@ myparser.add_option("-p",help="AWS Key",dest="password")
 myparser.add_option("-x",help="AWS Object",dest="awsobject")
 myparser.add_option("-d", action='store_true',help="Debug",dest="debug")
 (options, args) = myparser.parse_args()
-#print "Got %d args" % len(args)
 if options.awsobject is None:
   myhelp()
 if options.securityfile is not None:
   for line in readfiledata(options.securityfile).splitlines():
     (Key,Value)=line.rsplit("=") 
-#    if member.AWSxxx is not None:
     if Key == "AWSAccessKeyId":
       username=Value
     if Key == "AWSSecretKey":
@@ -83,10 +98,8 @@ else:
     password=options.password
   else:
     myhelp()
- 
-print "Username is " + username + " Password is " + password
-Credentials = ""
-from boto.ec2.connection import EC2Connection
-ec2handle = EC2Connection(Credentials)
+if options.awsobject is None:
+  myhelp() 
+#print "Username is " + username + " Password is " + password + " AWS Object is " + options.awsobject
 if __name__ == "__main__":
     main()
