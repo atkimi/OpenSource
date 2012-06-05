@@ -51,7 +51,7 @@ def readfiledata(fname):
 # Main
 # ____
 #
-def main(account,key,myregion):
+def main(account,key,myregion,myobject):
   import boto.ec2
   regionNames= []
   try:
@@ -70,21 +70,25 @@ def main(account,key,myregion):
   if not 'ec2handle' in locals():
     print "\nCouldn't connect to region %s\nAvailable regions are %s\n" % (myregion,str(regionNames))
     exit(1)
-  try:
-    instanceList=ec2handle.get_all_instances()
-  except:
-    print "\nUnable to get Instances for your account, Are your access credentials correct?\n"
-    exit(1)
-  chain = itertools.chain.from_iterable  
-  for Reservation in instanceList:
-    print list(chain([Reservation.instances]))
-  try:
-    securityList=ec2handle.get_all_security_groups()
-  except:
-    print "\nUnable to get Security Groups for your account, Are your access credentials correct?\n"
-    exit(1)
-  for securitygroup in securityList:
-    print securitygroup
+  if  myobject == "instances": 
+    try:
+      instanceList=ec2handle.get_all_instances()
+    except:
+      print "\nUnable to get Instances for your account, Are your access credentials correct?\n"
+      exit(1)
+    chain = itertools.chain.from_iterable  
+    for Reservation in instanceList:
+      print list(chain([Reservation.instances]))
+  elif myobject == "secgroup":
+    try:
+      securityList=ec2handle.get_all_security_groups()
+    except:
+      print "\nUnable to get Security Groups for your account, Are your access credentials correct?\n"
+      exit(1)
+    for securitygroup in securityList:
+      print securitygroup
+  else:
+    print "\nObject %s not implemented yet\n" % myobject
   ec2handle.close
 
 ##  _____________________
@@ -124,4 +128,4 @@ if options.awsobject is None:
 if options.region is None:
   myhelp()
 if __name__ == "__main__":
-    main(username,password,options.region)
+    main(username,password,options.region,options.awsobject)
