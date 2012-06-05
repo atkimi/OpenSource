@@ -12,8 +12,8 @@ def myhelp():
 \n\
   Usage:\n\
 \n\
-    %s -f<Security Credentials File> -x<asg|asi|images|instances|ips|keypairs|loadbalancers|rds|rdsparams|rdssecgroups|s3|secgroups|tags|volumes|vpcs|vpnconnections|vpngateways>\n\
-    %s -u<AWS Account> -p<AWS Security key> -x<asg|asi|images|ips|instances|keypairs|loadbalancers|rds|rdsparams|rdssecgroups|s3|secgroups|tags|volumes|vpcs|vpnconnections|vpngateways>\n\
+    %s -f<Security Credentials File> -r <Region> -x<asg|asi|images|instances|ips|keypairs|loadbalancers|rds|rdsparams|rdssecgroups|s3|secgroups|tags|volumes|vpcs|vpnconnections|vpngateways>\n\
+    %s -u<AWS Account> -p<AWS Security key> -r <Region> -x<asg|asi|images|ips|instances|keypairs|loadbalancers|rds|rdsparams|rdssecgroups|s3|secgroups|tags|volumes|vpcs|vpnconnections|vpngateways>\n\
 \n\
 " % (scriptname,scriptname,scriptname)
   print """
@@ -33,8 +33,10 @@ AWSSecretKey=<AWS Security key value>
 
 """
   exit(1)
+## ______________________________________________
 ##
 ## Read and return the contents of a file or None
+## ______________________________________________
 ##
 def readfiledata(fname):
   if not os.path.exists(fname):
@@ -44,35 +46,53 @@ def readfiledata(fname):
   filedata=fhandle.read()
   fhandle.close
   return(filedata)
+# ____
 #
 # Main
 # ____
 #
-def main():
-  print "u is " + username
-  from boto.ec2.connection import EC2Connection
+def main(account,key,myregion):
+  import boto.ec2
+  regionNames= []
   try:
-    ec2handle = EC2Connection(username,password)
-  except ValidationError:
-    print "\nYour AWS Account and Security Key was rejected\n"
+    availableRegions=boto.ec2.regions(aws_access_key_id=account, aws_secret_access_key=key)
+  except:
+    print "\nCouldn't acquire EC2 Regions\nAre your credentials correct?\n"
     exit(1)
-  ec2handle.region="RegionInfo:eu-west-1"
-#  print ec2handle.region 
-  print ec2handle 
+  for Region in availableRegions:
+    regionNames.append(str(Region.name))
+    if  Region.name == myregion:
+      try:
+        ec2handle = Region.connect(aws_access_key_id=account, aws_secret_access_key=key)
+      except:
+        print "\nCouldn't instantiate an EC2 Instance\n"
+        exit(1)
+  if not 'ec2handle' in locals():
+    print "\nCouldn't connect to region %s\nAvailable regions are %s\n" % (myregion,str(regionNames))
+    exit(1)
   try:
     instanceList=ec2handle.get_all_instances()
   except:
-    print "\nUnable to get Instances for your account\n"
+    print "\nUnable to get Instances for your account, Are your access credentials correct?\n"
     exit(1)
-  print instanceList
-  
-  print """So far so good"""
-## _____________________
+  chain = itertools.chain.from_iterable  
+  for Reservation in instanceList:
+    print list(chain([Reservation.instances]))
+  try:
+    securityList=ec2handle.get_all_security_groups()
+  except:
+    print "\nUnable to get Security Groups for your account, Are your access credentials correct?\n"
+    exit(1)
+  for securitygroup in securityList:
+    print securitygroup
+  ec2handle.close
+
+##  _____________________
 ##
-## E N T R Y   P O I N T
-## _____________________
+##  E N T R Y   P O I N T
+##  _____________________
 ##
-import imp, sys, os, re, time, math, optparse,boto
+import imp, sys, os, re, time, math, optparse,itertools
 from optparse import OptionParser
 clibits=sys.argv[0].split('/')
 scriptname=clibits[len(clibits)-1]
@@ -80,6 +100,7 @@ myparser = OptionParser()
 myparser.add_option("-f", "--file", help="AWS Credential filename",dest="securityfile")
 myparser.add_option("-u",help="AWS ID",dest="username")
 myparser.add_option("-p",help="AWS Key",dest="password")
+myparser.add_option("-r",help="AWS Region",dest="region")
 myparser.add_option("-x",help="AWS Object",dest="awsobject")
 myparser.add_option("-d", action='store_true',help="Debug",dest="debug")
 (options, args) = myparser.parse_args()
@@ -100,6 +121,7 @@ else:
     myhelp()
 if options.awsobject is None:
   myhelp() 
-#print "Username is " + username + " Password is " + password + " AWS Object is " + options.awsobject
+if options.region is None:
+  myhelp()
 if __name__ == "__main__":
-    main()
+    main(username,password,options.region)
