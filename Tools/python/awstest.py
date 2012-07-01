@@ -1,9 +1,26 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
 #
-# http://www.tutorialspoint.com/python/
 #
-# AWS test script 
+# Amazon Web Services Boto test Script
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#    Mike.Atkinson@quitenear.me
+#
+#    Lasted updated 7th June 2012
+#
 #
 def myhelp():
   print "\n\
@@ -41,7 +58,7 @@ AWSSecretKey=<AWS Security key value>
 def readfiledata(fname):
   if not os.path.exists(fname):
     print  "%s: File %s does not exist or is not readable\n" % (scriptname,fname)
-    exit(1)
+    return(None)
   fhandle=open(fname,"r")
   filedata=fhandle.read()
   fhandle.close
@@ -53,43 +70,79 @@ def readfiledata(fname):
 #
 def main(account,key,myregion,myobject):
   import boto.ec2
+  import boto.rds
+  import locale
+  locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
   regionNames= []
   try:
     availableRegions=boto.ec2.regions(aws_access_key_id=account, aws_secret_access_key=key)
   except:
-    print "\nCouldn't acquire EC2 Regions\nAre your credentials correct?\n"
+    print "\nCouldn't acquire AWS Regions\nAre your credentials correct?\n"
     exit(1)
   for Region in availableRegions:
     regionNames.append(str(Region.name))
     if  Region.name == myregion:
+      chosenRegion=Region
       try:
-        ec2handle = Region.connect(aws_access_key_id=account, aws_secret_access_key=key)
+        awsConnection = Region.connect(aws_access_key_id=account, aws_secret_access_key=key)
       except:
-        print "\nCouldn't instantiate an EC2 Instance\n"
+        print "\nCouldn't instantiate an AWS Instance\n"
         exit(1)
-  if not 'ec2handle' in locals():
+  if not 'awsConnection' in locals():
     print "\nCouldn't connect to region %s\nAvailable regions are %s\n" % (myregion,str(regionNames))
     exit(1)
+##
+## AWS VM's (Instances) 
+##
   if  myobject == "instances": 
     try:
-      instanceList=ec2handle.get_all_instances()
+      instanceList=awsConnection.get_all_instances()
     except:
       print "\nUnable to get Instances for your account, Are your access credentials correct?\n"
       exit(1)
+#    sortedlist=sorted(instanceList,key=lambda k: k['name'])
     chain = itertools.chain.from_iterable  
     for Reservation in instanceList:
       print list(chain([Reservation.instances]))
+##
+## AWS Security Groups
+##
   elif myobject == "secgroup":
     try:
-      securityList=ec2handle.get_all_security_groups()
+      securityGroupList=sorted(awsConnection.get_all_security_groups())
     except:
       print "\nUnable to get Security Groups for your account, Are your access credentials correct?\n"
       exit(1)
-    for securitygroup in securityList:
+    for securitygroup in securityGroupList:
       print securitygroup
+##
+## RDS Instances
+##
+  elif myobject == "rds":
+    try:
+       RDSconn = boto.rds.connect_to_region(chosenRegion, aws_access_key_id=account,     aws_secret_access_key=key)
+#      rdsconn=boto.rds.RDSConnection(aws_access_key_id=account, aws_secret_access_key=key, is_secure=True, port=None, proxy=None, proxy_port=None, proxy_user=None, proxy_pass=None, debug=0, https_connection_factory=None, region=myregion, path='/', security_token=None)
+#      rdsconn=boto.rds.RDSConnection(aws_access_key_id=account, aws_secret_access_key=key, is_secure=True, port=None, proxy=None, proxy_port=None, proxy_user=None, proxy_pass=None, debug=0, https_connection_factory=None, region=myregion, path='/')
+    except Exception,RDSe:
+      sys.stderr.write('RDS Connection ERROR: %s\n' % str(RDSe))
+      print "\nCouldn't instantiate an AWS RDS Connection\nAre your credentials correct?\n"
+      exit(1)
+#    try:
+#      awsConnection = Region.connect(aws_access_key_id=account, aws_secret_access_key=key)
+#    except:
+#      print "\nCouldn't instantiate an AWS RDS Instance\n"
+#      exit(1)
+    try:
+      rdsList=sorted(RDSconn.rds_conn.get_all_dbinstances())
+    except:
+      print "\nUnable to get RDS Instances for your account, Are your access credentials correct?\n"
+      exit(1)
+    for rdsvalue in rdsList:
+#      print rdsvalue
+      pprint(rdsvalue)
   else:
     print "\nObject %s not implemented yet\n" % myobject
-  ec2handle.close
+  awsConnection.close
 
 ##  _____________________
 ##
