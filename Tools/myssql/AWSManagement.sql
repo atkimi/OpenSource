@@ -24,13 +24,11 @@ CREATE DATABASE /*!32312 IF NOT EXISTS*/ `AWSManagement` /*!40100 DEFAULT CHARAC
 USE `AWSManagement`;
 -- 
 --
--- Table structure for table `AWS Instances`
+-- Table structure for table `EC2 Instances`
 --
 
-DROP TABLE IF EXISTS `AWS Instances`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `AWS Instances` (
+DROP TABLE IF EXISTS `EC2 Instances`;
+CREATE TABLE `EC2 Instances` (
   `Instance ID` varchar(20) NOT NULL DEFAULT '',
   `InstanceType` varchar(20) NOT NULL DEFAULT '',
   `AMI ID` varchar(20) NOT NULL DEFAULT '',
@@ -59,10 +57,10 @@ CREATE TABLE `AWS Instances` (
   PRIMARY KEY (`Instance ID`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 --
--- Table structure for table `AWS Instance Tags`
+-- Table structure for table `EC2 Instance Tags`
 --
-DROP TABLE IF EXISTS `AWS Instance Tags`;
-CREATE TABLE `AWS Instance Tags` (
+DROP TABLE IF EXISTS `EC2 Instance Tags`;
+CREATE TABLE `EC2 Instance Tags` (
   `Instance ID` varchar(20) NOT NULL DEFAULT '',
   `Key` varchar(80) NOT NULL DEFAULT '',
   `Value` varchar(120) DEFAULT NULL,
@@ -70,10 +68,10 @@ CREATE TABLE `AWS Instance Tags` (
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 --
 --
--- Table structure for table `AWS Instance EBS Volumes`
+-- Table structure for table `EBS Volumes`
 --
-DROP TABLE IF EXISTS `AWS Instance Volumes`;
-CREATE TABLE `AWS Instance Volumes` (
+DROP TABLE IF EXISTS `EC2 Instance Volumes`;
+CREATE TABLE `EC2 Instance Volumes` (
   `Instance ID` varchar(20) NOT NULL DEFAULT '',
   `Volume ID` varchar(20) NOT NULL DEFAULT '',
   `Device Name` varchar(30) NOT NULL DEFAULT '',
@@ -85,8 +83,8 @@ CREATE TABLE `AWS Instance Volumes` (
 --
 --
 --
-DROP TABLE IF EXISTS `AWS Instance Security Groups`;
-CREATE TABLE `AWS Instance Security Groups` (
+DROP TABLE IF EXISTS `EC2 Instance Security Groups`;
+CREATE TABLE `EC2 Instance Security Groups` (
   `Instance ID` varchar(20) NOT NULL DEFAULT '',
   `Name` varchar(40) DEFAULT NULL,
   PRIMARY KEY (`Instance ID`,`Name`)
@@ -99,8 +97,8 @@ CREATE TABLE `AWS Instance Security Groups` (
 --    _____________
 -- 
 -- 
-DROP TABLE IF EXISTS `AWS RDS Instances`;
-CREATE TABLE `AWS RDS Instances` (
+DROP TABLE IF EXISTS `RDS Instances`;
+CREATE TABLE `RDS Instances` (
   `End Point` varchar(80) NOT NULL DEFAULT '',
   `Port` int(3) DEFAULT NULL,
   `Class` varchar(120) NOT NULL DEFAULT '',
@@ -125,8 +123,8 @@ CREATE TABLE `AWS RDS Instances` (
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 -- 
 --
-DROP TABLE IF EXISTS `AWS RDS Security Groups`;
-CREATE TABLE `AWS RDS Security Groups` (
+DROP TABLE IF EXISTS `RDS Security Groups`;
+CREATE TABLE `RDS Security Groups` (
   `Name` varchar(40) NOT NULL DEFAULT '',
   `Description` varchar(40) NOT NULL DEFAULT '',
 -- 
@@ -139,8 +137,8 @@ CREATE TABLE `AWS RDS Security Groups` (
 --
 -- Glue RDS and EC2 Security Groups in this table ... 
 --
-DROP TABLE IF EXISTS `AWS RDS Associated EC2 Security Groups`;
-CREATE TABLE `AWS RDS Associated EC2 Security Groups` (
+DROP TABLE IF EXISTS `RDS Associated EC2 Security Groups`;
+CREATE TABLE `RDS Associated EC2 Security Groups` (
   `RDS Name` varchar(40) NOT NULL DEFAULT '',
   `EC2 Name` varchar(40) NOT NULL DEFAULT '',
   `EC2 Owner ID` varchar(40) NOT NULL DEFAULT '',
